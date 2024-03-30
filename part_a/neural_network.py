@@ -1,4 +1,4 @@
-from utils import *
+from part_a.utils import *
 from torch.autograd import Variable
 
 import torch.nn as nn

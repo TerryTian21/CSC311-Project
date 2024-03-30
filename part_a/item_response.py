@@ -1,4 +1,4 @@
-from utils import *
+from part_a.utils import *
 
 import numpy as np
 
