@@ -123,13 +123,16 @@ def als(train_data, k, lr, num_iteration, val_data = None):
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    for _ in range(num_iteration):
+    for i in range(num_iteration):
         train_loss = squared_error_loss(train_data, u, z)
         if val_data:
             val_loss = squared_error_loss(val_data, u, z)
             losses["val"].append(val_loss)
         u, z = update_u_z(train_data, lr, u, z)
         losses["train"].append(train_loss)
+
+        if i % 50 == 0:
+            print(train_loss)
 
     mat = u @ z.T
     #####################################################################
@@ -147,9 +150,14 @@ def accuracy_fn(preds, truth):
     """
     return sum([1 if i == j else 0 for i, j in zip(preds, truth)])/len(preds)
 
-def plot_loss(train_data, val_data, k, lr, iter):
+def plot_loss(train_data, val_data, test_data, k, lr, iter):
     
-    _, loss = als(train_data, k, lr, iter, val_data)
+    m, loss = als(train_data, k, lr, iter, val_data)
+    preds_val = sparse_matrix_predictions(val_data, m)
+    preds_test = sparse_matrix_predictions(test_data, m)
+    print(f"val acc : {accuracy_fn(val_data['is_correct'], preds_val)}")
+    print(f"test acc : {accuracy_fn(test_data['is_correct'], preds_test)}")
+
 
     plt.figure(figsize=(12, 9))
     plt.subplots_adjust(hspace=0.5)
@@ -188,7 +196,7 @@ def main():
         accuracy = accuracy_fn(preds, val_data["is_correct"])
         print(f"Accuracy for k = {k} is {accuracy:4f}")
 
-    #  TODO: print validation and test acc
+    # print validation and test acc
     m  = svd_reconstruct(train_matrix, 9)
     preds = sparse_matrix_predictions(test_data, m)
     print(accuracy_fn(test_data["is_correct"], preds))
@@ -201,10 +209,10 @@ def main():
     # TODO:                                                             #
     # (ALS) Try out at least 5 different k and select the best k        #
     # using the validation set.                                         #
-    #####################################################################
+    ####################################################################
     num_latent = [3, 5, 9, 15, 20]
     lrs = [0.001, 0.01, 0.03, 0.1, 0.3]
-    iterations = [10, 20, 50, 100]
+    iterations = [10, 20, 50, 100, 500, 1000, 4000]
 
     results = {
         "k": [],
@@ -234,7 +242,7 @@ def main():
     
     #  TODO: plot data
 
-    plot_loss(train_data, val_data, 3, 0.3, 100)
+    plot_loss(train_data, val_data, test_data, 3, 0.3, 4000)
 
     #####################################################################
     #                       END OF YOUR CODE                            #
