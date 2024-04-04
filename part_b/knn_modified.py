@@ -3,65 +3,48 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import *
 import numpy as np
 import os
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 
 
-def calculate_dob_similarity(user_dob):
-    # Compute similarity matrix based on age similarity
-    num_users = len(user_dob)
-    age_similarity_matrix = np.zeros((num_users, num_users))
-    for i in range(num_users):
-        for j in range(num_users):
-            # Calculate age similarity (e.g., inverse of absolute age difference)
-            age_similarity_matrix[i, j] = 1 / (1 + abs(user_dob[i] - user_dob[j]))
-    return age_similarity_matrix
+def get_year_array(student_meta_data):
+    user_dob = np.array(
+        [
+            student_meta_data["date_of_birth"][i]
+            for i in range(len(student_meta_data["user_id"]))
+        ]
+    )
+
+    # print("User dob: ", user_dob)
+    # Extract the year from each date
+    user_year = np.array(
+        [
+            dob.year if dob is not None and dob.year <= 2024 else np.nan
+            for dob in user_dob
+        ]
+    )
+
+    # print("User year: ", user_year)
+    return user_year
 
 
-def knn_impute_with_dob(matrix, user_age, valid_data, k, age_weight=0.5):
-    num_users, num_questions = matrix.shape
-    imputed_matrix = np.copy(matrix)
+def get_month_array(student_meta_data):
+    user_dob = np.array(
+        [
+            student_meta_data["date_of_birth"][i]
+            for i in range(len(student_meta_data["user_id"]))
+        ]
+    )
 
-    # Calculate age similarity matrix
-    age_similarity_matrix = calculate_dob_similarity(user_age)
-
-    for i in range(num_users):
-        for j in range(num_questions):
-            if np.isnan(matrix[i][j]):
-                # Compute combined similarity using age similarity and traditional KNN similarity
-                combined_similarity = (
-                    age_weight * age_similarity_matrix[i, :]
-                    + (1 - age_weight)
-                    * cosine_similarity(matrix[i, :].reshape(1, -1), matrix)[0]
-                )
-
-                # Find k-nearest neighbors based on combined similarity
-                neighbor_indices = np.argsort(combined_similarity)[-k:]
-
-                # Impute missing value using weighted average of neighbors
-                imputed_value = np.sum(
-                    matrix[neighbor_indices, j] * combined_similarity[neighbor_indices]
-                ) / np.sum(combined_similarity[neighbor_indices])
-
-                # Update imputed value in the matrix
-                imputed_matrix[i][j] = imputed_value
-
-    # Evaluate accuracy using validation data
-    nbrs = KNNImputer(n_neighbors=k)
-    mat = nbrs.fit_transform(imputed_matrix)
-    acc = sparse_matrix_evaluate(valid_data, mat)
-    print("Validation Accuracy: {}".format(acc))
-    return acc
-
-
-def plot_accuracy(k_list, item_acc, title):
-    plt.figure(figsize=(10, 6))
-    plt.bar(k_list, item_acc, color="blue", edgecolor="black")
-    plt.ylim(bottom=0.5)
-    plt.title(title)
-    plt.xlabel("K")
-    plt.ylabel("Accuracy")
-    plt.savefig("../Static/item_filtering.png", dpi=400)
-    plt.show()
+    # Extract the month from each date
+    user_month = np.array(
+        [
+            dob.month if dob is not None and dob.year <= 2024 else np.nan
+            for dob in user_dob
+        ]
+    )
+    # print("User month: ", user_month)
+    return user_month
 
 
 def main():
@@ -73,13 +56,8 @@ def main():
     val_data = load_valid_csv(os.path.join(project_root, "data"))
     test_data = load_public_test_csv(os.path.join(project_root, "data"))
     student_meta_data = load_student_csv(os.path.join(project_root, "data"))
-    print(student_meta_data)
-
-    # print("Sparse matrix:")
-    # print(sparse_matrix)
-    # print("Shape of sparse matrix:")
-    # print(sparse_matrix.shape)
-    # print("Student meta data:")
+    get_year_array(student_meta_data)
+    get_month_array(student_meta_data)
 
     #####################################################################
     # TODO:                                                             #
@@ -87,34 +65,6 @@ def main():
     # the best performance and report the test accuracy with the        #
     # chosen k*.                                                        #
     #####################################################################
-
-    # Initialize Variables
-    k_list = [1, 6, 11, 16, 21, 26]
-    best_acc_user, best_k_user = 0, 1
-
-    user_acc = []
-    acc = knn_impute_with_dob(
-        sparse_matrix, student_meta_data["date_of_birth"], val_data, k_list[0]
-    )
-
-    # Lists used for plotting
-
-    # for k in k_list:
-    #     curr_acc_user = knn_impute_by_user(sparse_matrix, val_data, k)
-    #     user_acc.append(curr_acc_user)
-
-    #     # Check acc for user based filtering
-    #     if curr_acc_user > best_acc_user:
-    #         best_k_user, best_acc_user = k, curr_acc_user
-
-    # # Obtain Test Accuracies
-    # test_acc_user = knn_impute_by_user(sparse_matrix, test_data, best_k_user)
-
-    # print(
-    #     f"The best test acc and K value for user based filter is {test_acc_user*100:.2f}% and k={best_k_user}"
-    # )
-
-    # plot_accuracy(k_list, user_acc, "Accuracy of User Based Collaborative Filtering")
 
     #####################################################################
     #                       END OF YOUR CODE                            #
