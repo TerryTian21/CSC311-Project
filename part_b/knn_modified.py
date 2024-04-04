@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 
 def knn_impute_by_user(matrix, valid_data, k):
-    """ Fill in the missing values using k-Nearest Neighbors based on
+    """Fill in the missing values using k-Nearest Neighbors based on
     student similarity. Return the accuracy on valid_data.
 
     See https://scikit-learn.org/stable/modules/generated/sklearn.
@@ -24,8 +24,18 @@ def knn_impute_by_user(matrix, valid_data, k):
     # We use NaN-Euclidean distance measure.
     mat = nbrs.fit_transform(matrix)
     acc = sparse_matrix_evaluate(valid_data, mat)
-    print("Validation Accuracy: {}".format(acc))
+    # print("Validation Accuracy: {}".format(acc))
     return acc
+
+
+def normalize_array(array):
+    min_val = np.nanmin(array)
+    max_val = np.nanmax(array)
+    return (array - min_val) / (max_val - min_val)
+
+
+def scale_array(array, scale_factor):
+    return array * scale_factor
 
 
 def append_data_as_new_question(matrix, data):
@@ -35,6 +45,7 @@ def append_data_as_new_question(matrix, data):
     new_matrix[:, :-1] = matrix
     new_matrix[:, -1] = data
     return new_matrix
+
 
 def get_year_array(student_meta_data):
     user_dob = np.array(
@@ -85,18 +96,45 @@ def main():
     val_data = load_valid_csv(os.path.join(project_root, "data"))
     test_data = load_public_test_csv(os.path.join(project_root, "data"))
     student_meta_data = load_student_csv(os.path.join(project_root, "data"))
-    get_year_array(student_meta_data)
-    get_month_array(student_meta_data)
+    year_array = get_year_array(student_meta_data)
+    normalized_year_array = normalize_array(year_array)
+    # month_array = get_month_array(student_meta_data)
 
-    sparse_matrix = append_data_as_new_question(sparse_matrix, get_year_array(student_meta_data))
+    k_values = [6, 11, 16, 21, 26]
+    # Not normalized with year
+    sparse_matrix = append_data_as_new_question(sparse_matrix, year_array)
 
     valid_acc = []
-    for k in [6, 11, 16, 21, 26]:
+    for k in k_values:
         valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, k))
 
-    print(valid_acc)
-    
+    print("Not Normalized")
+    for i in range(len(valid_acc)):
+        print(f"Validation Accuracy for k = {k_values[i]} is {valid_acc[i]:.4f}")
 
+    # Normalized with year
+    sparse_matrix = append_data_as_new_question(sparse_matrix, normalized_year_array)
+    valid_acc = []
+    for k in k_values:
+        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, k))
+
+    print("Normalized")
+    for i in range(len(valid_acc)):
+        print(f"Validation Accuracy for k = {k_values[i]} is {valid_acc[i]:.4f}")
+
+    # Scaled with year
+    scale_factors = [0.1, 0.5, 1, 2, 10]
+    valid_acc = []
+    for scale_factor in scale_factors:
+        sparse_matrix = append_data_as_new_question(
+            sparse_matrix, scale_array(normalized_year_array, scale_factor)
+        )
+        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, 11))
+
+    print("Scaled (with normalized year)")
+    for i, scale_factor in enumerate(scale_factors):
+        print(f"Scaled by {scale_factor}")
+        print(f"Validation Accuracy for k = {11} is {valid_acc[i]:.4f}")
 
     #####################################################################
     # TODO:                                                             #
