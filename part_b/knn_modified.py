@@ -75,6 +75,24 @@ def get_month_array(student_meta_data):
     # print("User month: ", user_month)
     return user_month
 
+def get_premium_array(student_meta_data):
+    user_premium = np.array(
+        [
+            student_meta_data["premium_pupil"][i] if student_meta_data["premium_pupil"][i] is not None else np.nan
+            for i in range(len(student_meta_data["user_id"]))
+        ]
+    )
+    return user_premium
+
+def eval_adding_premium(sparse_matrix, student_meta_data, val_data):
+    sparse_matrix = append_data_as_new_question(sparse_matrix, get_premium_array(student_meta_data))
+
+    valid_acc = []
+    for k in [11]:
+        print("k == ", k)
+        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, k))
+
+    print(valid_acc)
 
 def main():
     # Get the root of the project
@@ -85,16 +103,6 @@ def main():
     val_data = load_valid_csv(os.path.join(project_root, "data"))
     test_data = load_public_test_csv(os.path.join(project_root, "data"))
     student_meta_data = load_student_csv(os.path.join(project_root, "data"))
-    get_year_array(student_meta_data)
-    get_month_array(student_meta_data)
-
-    sparse_matrix = append_data_as_new_question(sparse_matrix, get_year_array(student_meta_data))
-
-    valid_acc = []
-    for k in [6, 11, 16, 21, 26]:
-        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, k))
-
-    print(valid_acc)
     
 
 
