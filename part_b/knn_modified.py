@@ -7,6 +7,35 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 
 
+def knn_impute_by_user(matrix, valid_data, k):
+    """ Fill in the missing values using k-Nearest Neighbors based on
+    student similarity. Return the accuracy on valid_data.
+
+    See https://scikit-learn.org/stable/modules/generated/sklearn.
+    impute.KNNImputer.html for details.
+
+    :param matrix: 2D sparse matrix
+    :param valid_data: A dictionary {user_id: list, question_id: list,
+    is_correct: list}
+    :param k: int
+    :return: float
+    """
+    nbrs = KNNImputer(n_neighbors=k)
+    # We use NaN-Euclidean distance measure.
+    mat = nbrs.fit_transform(matrix)
+    acc = sparse_matrix_evaluate(valid_data, mat)
+    print("Validation Accuracy: {}".format(acc))
+    return acc
+
+
+def append_data_as_new_question(matrix, data):
+    # Append data as new question
+    num_users, num_questions = matrix.shape
+    new_matrix = np.zeros((num_users, num_questions + 1))
+    new_matrix[:, :-1] = matrix
+    new_matrix[:, -1] = data
+    return new_matrix
+
 def get_year_array(student_meta_data):
     user_dob = np.array(
         [
@@ -58,6 +87,16 @@ def main():
     student_meta_data = load_student_csv(os.path.join(project_root, "data"))
     get_year_array(student_meta_data)
     get_month_array(student_meta_data)
+
+    sparse_matrix = append_data_as_new_question(sparse_matrix, get_year_array(student_meta_data))
+
+    valid_acc = []
+    for k in [6, 11, 16, 21, 26]:
+        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, k))
+
+    print(valid_acc)
+    
+
 
     #####################################################################
     # TODO:                                                             #
