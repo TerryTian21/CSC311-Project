@@ -1,5 +1,9 @@
-from part_a.utils import *
+from utils import *
 from scipy.linalg import sqrtm
+import itertools
+from tqdm.auto import tqdm
+import pandas as pd
+import matplotlib.pyplot as plt
 
 import numpy as np
 
@@ -80,13 +84,20 @@ def update_u_z(train_data, lr, u, z):
     c = train_data["is_correct"][i]
     n = train_data["user_id"][i]
     q = train_data["question_id"][i]
+
+    # Calculate Error
+    error = c - np.dot(u[n], z[q].T)
+
+    # Graident Updates (note that the double negatives cancle out so its +=)
+    u[n] += lr * error * z[q]
+    z[q] += lr * error * u[n]
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
     return u, z
 
 
-def als(train_data, k, lr, num_iteration):
+def als(train_data, k, lr, num_iteration, val_data = None):
     """ Performs ALS algorithm, here we use the iterative solution - SGD 
     rather than the direct solution.
 
@@ -102,17 +113,62 @@ def als(train_data, k, lr, num_iteration):
                           size=(len(set(train_data["user_id"])), k))
     z = np.random.uniform(low=0, high=1 / np.sqrt(k),
                           size=(len(set(train_data["question_id"])), k))
+    
+    losses = {
+        "train": [],
+        "val": []
+    }
 
     #####################################################################
     # TODO:                                                             #
     # Implement the function as described in the docstring.             #
     #####################################################################
-    mat = None
+    for _ in range(num_iteration):
+        train_loss = squared_error_loss(train_data, u, z)
+        if val_data:
+            val_loss = squared_error_loss(val_data, u, z)
+            losses["val"].append(val_loss)
+        u, z = update_u_z(train_data, lr, u, z)
+        losses["train"].append(train_loss)
+
+    mat = u @ z.T
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
-    return mat
+    return mat, losses
 
+def accuracy_fn(preds, truth):
+    """
+    Gives the prediction accuracy of two lists.
+
+    :param preds: list
+    :param truth: list
+
+    """
+    return sum([1 if i == j else 0 for i, j in zip(preds, truth)])/len(preds)
+
+def plot_loss(train_data, val_data, k, lr, iter):
+    
+    _, loss = als(train_data, k, lr, iter, val_data)
+
+    plt.figure(figsize=(12, 9))
+    plt.subplots_adjust(hspace=0.5)
+
+    plt.subplot(2,1,1)
+    plt.plot(loss["train"], label="train loss")
+    plt.xlabel("iteration")
+    plt.ylabel("squared error loss")
+    plt.title("Train Loss over Time")
+
+    plt.subplot(2,1,2)
+    plt.plot(loss["val"], label="val loss")
+    plt.xlabel("iteration")
+    plt.ylabel("squared error loss")
+    plt.title("Val Loss over Time")
+
+    plt.legend()
+    plt.savefig("../Static/als_loss.png", dpi=400)
+    plt.show()
 
 def main():
     train_matrix = load_train_sparse("../data").toarray()
@@ -125,7 +181,18 @@ def main():
     # (SVD) Try out at least 5 different k and select the best k        #
     # using the validation set.                                         #
     #####################################################################
-    pass
+    num_latent = [3, 5, 7, 9, 11, 15, 20]
+    for k in num_latent:
+        m = svd_reconstruct(train_matrix, k)
+        preds = sparse_matrix_predictions(val_data, m)
+        accuracy = accuracy_fn(preds, val_data["is_correct"])
+        print(f"Accuracy for k = {k} is {accuracy:4f}")
+
+    #  TODO: print validation and test acc
+    m  = svd_reconstruct(train_matrix, 9)
+    preds = sparse_matrix_predictions(test_data, m)
+    print(accuracy_fn(test_data["is_correct"], preds))
+    
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
@@ -135,11 +202,45 @@ def main():
     # (ALS) Try out at least 5 different k and select the best k        #
     # using the validation set.                                         #
     #####################################################################
-    pass
+    num_latent = [3, 5, 9, 15, 20]
+    lrs = [0.001, 0.01, 0.03, 0.1, 0.3]
+    iterations = [10, 20, 50, 100]
+
+    results = {
+        "k": [],
+        "lr": [],
+        "iter": [],
+        "acc": []
+    }
+
+    for k, lr, iter in tqdm(list(itertools.product(num_latent, lrs, iterations))):
+
+        m, _ = als(train_data, k, lr, iter)
+        preds = sparse_matrix_predictions(val_data, m)
+        accuracy = accuracy_fn(preds, val_data["is_correct"])
+        tqdm.write(f"Accuracy for k = {k} | lr = {lr} | iter = {iter} | acc = {accuracy}")
+        results['k'].append(k)
+        results['lr'].append(lr)
+        results["iter"].append(iter)
+        results['acc'].append(accuracy)
+
+    df = pd.DataFrame(results)
+    df = df.sort_values(by="acc", ascending=False)
+    print(df)
+
+    m , _ = als(train_data, 3, 0.3, 100)
+    preds = sparse_matrix_predictions(test_data, m)
+    print(accuracy_fn(test_data["is_correct"], preds))
+    
+    #  TODO: plot data
+
+    plot_loss(train_data, val_data, 3, 0.3, 100)
+
     #####################################################################
     #                       END OF YOUR CODE                            #
     #####################################################################
 
 
 if __name__ == "__main__":
+    np.random.seed(42)
     main()
