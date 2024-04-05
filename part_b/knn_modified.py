@@ -124,7 +124,7 @@ def plot_accuracy(scale_factors, valid_acc, title, filename):
         edgecolor="black",
     )  # Adjust the width parameter to make bars smaller
     plt.ylim(
-        [min(valid_acc) - 0.01, max(valid_acc) + 0.01]
+        [min(valid_acc) - 0.005, max(valid_acc) + 0.005]
     )  # Adjust the y-axis range to better visualize differences
     plt.title(title)
     plt.xlabel("Scale Factors")
@@ -139,10 +139,10 @@ def test_year(year_array, sparse_matrix, val_data):
     scale_factors = [0.1, 0.5, 1, 2, 10]
     valid_acc = []
     for scale_factor in scale_factors:
-        sparse_matrix = append_data_as_new_question(
+        new_sparse_matrix = append_data_as_new_question(
             sparse_matrix, scale_array(normalized_year_array, scale_factor)
         )
-        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, 11))
+        valid_acc.append(knn_impute_by_user(new_sparse_matrix, val_data, 11))
 
     print("Scaled (with normalized year)")
     for i, scale_factor in enumerate(scale_factors):
@@ -163,10 +163,11 @@ def test_month(month_array, sparse_matrix, val_data):
     scale_factors = [0.1, 0.5, 1, 2, 10]
     valid_acc = []
     for scale_factor in scale_factors:
-        sparse_matrix = append_data_as_new_question(
+        # Create a copy of the sparse matrix
+        new_sparse_matrix = append_data_as_new_question(
             sparse_matrix, scale_array(normalized_month_array, scale_factor)
         )
-        valid_acc.append(knn_impute_by_user(sparse_matrix, val_data, 11))
+        valid_acc.append(knn_impute_by_user(new_sparse_matrix, val_data, 11))
 
     print("Scaled (with normalized month)")
     for i, scale_factor in enumerate(scale_factors):
