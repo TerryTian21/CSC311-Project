@@ -183,7 +183,7 @@ def plot_accuracy(scale_factors, valid_acc, title, filename):
     plt.show()
 
 
-def test_year(year_array, sparse_matrix, val_data):
+def plot_pred_year(year_array, sparse_matrix, val_data):
     normalized_year_array = normalize_array(year_array)
     # month_array = get_month_array(student_meta_data)
 
@@ -210,7 +210,7 @@ def test_year(year_array, sparse_matrix, val_data):
         print(f"Validation Accuracy for k = {k_values[i]} is {valid_acc[i]:.4f}")
 
     # Scaled with year
-    scale_factors = [0.1, 0.5, 1, 2, 10]
+    scale_factors = [0.0, 0.1, 0.5, 1, 2, 10]
     valid_acc = []
     for scale_factor in scale_factors:
         new_sparse_matrix = append_data_as_new_question(
@@ -231,10 +231,10 @@ def test_year(year_array, sparse_matrix, val_data):
     )
 
 
-def test_month(month_array, sparse_matrix, val_data):
+def plot_pred_month(month_array, sparse_matrix, val_data):
     normalized_month_array = normalize_array(month_array)
     # Test normalized month with different scale factors for k = 11
-    scale_factors = [0.1, 0.5, 1, 2, 10]
+    scale_factors = [0.0, 0.1, 0.5, 1, 2, 10]
     valid_acc = []
     for scale_factor in scale_factors:
         # Create a copy of the sparse matrix
@@ -255,6 +255,39 @@ def test_month(month_array, sparse_matrix, val_data):
         "knn_modified_month_filtering",
     )
 
+def plot_pred_gender(sparse_matrix, student_meta_data, val_data):
+    normalized_gender_array = normalize_array(get_gender_array(student_meta_data))
+    scale_factors = [0.0, 0.1, 0.5, 1, 2, 10]
+    valid_acc = []
+    for scale_factor in scale_factors:
+        new_sparse_matrix = append_data_as_new_question(
+            sparse_matrix, scale_array(normalized_gender_array, scale_factor)
+        )
+        valid_acc.append(knn_impute_by_user(new_sparse_matrix, val_data, 11))
+
+    plot_accuracy(
+        scale_factors,
+        valid_acc,
+        "Accuracy of User-based Filtering With Gender Column For Various Scale Factors",
+        "knn_modified_gender_filtering",
+    )
+
+def plot_pred_premium(sparse_matrix, student_meta_data, val_data):
+    normalized_premium_array = normalize_array(get_premium_array(student_meta_data))
+    scale_factors = [0.0, 0.1, 0.5, 1.0, 2.0, 10.0]
+    valid_acc = []
+    for scale_factor in scale_factors:
+        new_sparse_matrix = append_data_as_new_question(
+            sparse_matrix, scale_array(normalized_premium_array, scale_factor)
+        )
+        valid_acc.append(knn_impute_by_user(new_sparse_matrix, val_data, 11))
+
+    plot_accuracy(
+        scale_factors,
+        valid_acc,
+        "Accuracy of User-based Filtering With Premium Column For Various Scale Factors",
+        "knn_modified_premium_filtering",
+    )   
 
 def main():
     # Get the root of the project
@@ -265,14 +298,17 @@ def main():
     val_data = load_valid_csv(os.path.join(project_root, "data"))
     test_data = load_public_test_csv(os.path.join(project_root, "data"))
     student_meta_data = load_student_csv(os.path.join(project_root, "data"))
-    year_array = get_year_array(student_meta_data)
 
-    sparse_matrix = append_data_as_new_question(sparse_matrix, year_array)
-    test_year(year_array, sparse_matrix, val_data)
+    year_array = get_year_array(student_meta_data)
+    year_sparse_matrix = append_data_as_new_question(sparse_matrix, year_array)
+    plot_pred_year(year_array, year_sparse_matrix, val_data)
 
     month_array = get_month_array(student_meta_data)
-    sparse_matrix = append_data_as_new_question(sparse_matrix, month_array)
-    test_month(month_array, sparse_matrix, val_data)
+    month_sparse_matrix = append_data_as_new_question(sparse_matrix, month_array)
+    plot_pred_month(month_array, month_sparse_matrix, val_data)
+
+    plot_pred_gender(sparse_matrix, student_meta_data, val_data)
+    plot_pred_premium(sparse_matrix, student_meta_data, val_data)
 
     #####################################################################
     # TODO:                                                             #
