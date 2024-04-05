@@ -299,16 +299,38 @@ def main():
     test_data = load_public_test_csv(os.path.join(project_root, "data"))
     student_meta_data = load_student_csv(os.path.join(project_root, "data"))
 
-    year_array = get_year_array(student_meta_data)
-    year_sparse_matrix = append_data_as_new_question(sparse_matrix, year_array)
-    plot_pred_year(year_array, year_sparse_matrix, val_data)
+    # year_array = get_year_array(student_meta_data)
+    # year_sparse_matrix = append_data_as_new_question(sparse_matrix, year_array)
+    # # plot_pred_year(year_array, year_sparse_matrix, val_data)
 
-    month_array = get_month_array(student_meta_data)
-    month_sparse_matrix = append_data_as_new_question(sparse_matrix, month_array)
-    plot_pred_month(month_array, month_sparse_matrix, val_data)
+    # month_array = get_month_array(student_meta_data)
+    # month_sparse_matrix = append_data_as_new_question(sparse_matrix, month_array)
+    # plot_pred_month(month_array, month_sparse_matrix, val_data)
 
-    plot_pred_gender(sparse_matrix, student_meta_data, val_data)
-    plot_pred_premium(sparse_matrix, student_meta_data, val_data)
+    # plot_pred_gender(sparse_matrix, student_meta_data, val_data)
+    # plot_pred_premium(sparse_matrix, student_meta_data, val_data)
+
+    best_year_sparse_matrix = append_data_as_new_question(sparse_matrix, get_year_array(student_meta_data))
+    best_year = knn_impute_by_user(best_year_sparse_matrix, test_data, 11)
+    print("Best Year Accuracy: ", best_year)
+    
+    best_month_sparse_matrix = append_data_as_new_question(sparse_matrix, get_month_array(student_meta_data))
+    best_month = knn_impute_by_user(best_month_sparse_matrix, test_data, 11)
+    print("Best Month Accuracy: ", best_month)
+
+    best_premium_sparse_matrix = append_data_as_new_question(sparse_matrix, get_premium_array(student_meta_data) * 1.0)
+    best_prem = knn_impute_by_user(best_premium_sparse_matrix, test_data, 11)
+    print("Best Premium Accuracy: ", best_prem)
+
+    best_gender_sparse_matrix = append_data_as_new_question(sparse_matrix, get_gender_array(student_meta_data) * 0.5)
+    best_gender = knn_impute_by_user(best_gender_sparse_matrix, test_data, 11)
+    print("Best Gender Accuracy: ", best_gender)
+    
+    sparse_matrix = append_data_as_new_question(sparse_matrix, get_premium_array(student_meta_data) * 1.0)
+
+    combined_acc = knn_impute_by_user(sparse_matrix, test_data, 11)
+    print("Combined Accuracy: ", combined_acc)
+
 
     #####################################################################
     # TODO:                                                             #
